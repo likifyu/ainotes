@@ -1,0 +1,189 @@
+const fs = require('fs');
+
+const content = `import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useStore } from '../store/useStore';
+import FileToolbar from './FileToolbar';
+import soundService from '../services/sound-service';
+
+const Editor: React.FC = () => {
+  const { currentNote, updateNote, theme } = useStore();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [showTableHelp, setShowTableHelp] = useState(false);
+
+  const handleContentChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      if (currentNote) {
+        updateNote(currentNote.id, { content: e.target.value });
+        const firstLine = e.target.value.split('\\n')[0].replace(/[#*\`]/g, '').trim();
+        if (firstLine && firstLine !== currentNote.title) {
+          updateNote(currentNote.id, { title: firstLine.slice(0, 50) });
+        }
+      }
+    },
+    [currentNote, updateNote]
+  );
+
+  const handleTitleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) =>currentNote) {
+ {
+      if (        updateNote(currentNote.id, { title: e.target.value });
+      }
+    },
+    [currentNote, updateNote]
+  );
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+    }
+  }, [currentNote?.content]);
+
+  const insertTable = () => {
+    if (!currentNote || !textareaRef.current) return;
+    const tableTemplate = \\`
+| 列1 | 列2 | 列3 |
+|-----|-----|-----|
+| 内容 | 内容 | 内容 |
+| 内容 | 内容 | 内容 |
+\\`;
+    const textarea = textareaRef.current;
+    const start = textarea.selectionStart;
+    const text = currentNote.content;
+    const newContent = text.substring(0, start) + tableTemplate + text.substring(start);
+    updateNote(currentNote.id, { content: newContent });
+    setTimeout(() => {
+      textarea.focus();
+      const newPos = start + tableTemplate.indexOf('内容');
+      textarea.setSelectionRange(newPos, newPos);
+    }, 0);
+    soundService.playClick();
+  };
+
+  const insertCheckbox = () => {
+    if (!currentNote || !textareaRef.current) return;
+    const checkbox = '- [ ] ';
+    const textarea = textareaRef.current;
+    const start = textarea.selectionStart;
+    const text = currentNote.content;
+    const newContent = text.substring(0, start) + checkbox + text.substring(start);
+    updateNote(currentNote.id, { content: newContent });
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + checkbox.length, start + checkbox.length);
+    }, 0);
+    soundService.playClick();
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        soundService.playSave();
+        window.dispatchEvent(new CustomEvent('save-note'));
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  if (!currentNote) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400">
+        <div className="text-center">
+          <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <p className="text-lg">选择一个笔记开始编辑</p>
+          <p className="text-sm mt-2">或创建新笔记</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className={\\`px-8 py-4 border-b \\${theme === 'dark' ? 'border-gray-700' : 'border-gray-2'}\\`}>
+        <input
+          type="text"
+          value={currentNote.title}
+          onChange={handleTitleChange}
+          placeholder="笔记标题"
+          className={\\`
+            w-full text-2xl font-bold bg-transparent border-none outline-none
+            \\${theme === 'dark' ? 'text-white placeholder-gray-500' : 'text-gray-900 placeholder-gray-400'}
+          \\`}
+        />
+      </div>
+      <FileToolbar />
+      <div className={\\`
+        flex items-center gap-1 px-4 py-2 border-b
+        \\${theme === 'dark' ? 'bg-gray-800/30 border-white/5' : 'bg-gray-50 border-gray-200'}
+      \\`}>
+        <button onClick={insertTable} className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-violet-500/20 text-violet-300 border border-violet-500/30 hover:bg-violet-500/30 transition-all" title="插入表格">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+          <span>表格</span>
+        </button>
+        <button onClick={insertCheckbox} className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 transition-all" title="插入复选框">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+          <span>待办</span>
+        </button>
+        <div className="w-px h-4 bg-white/10 mx-2" />
+        <button onClick={() => setShowTableHelp(!showTableHelp)} className="flex items-center gap-1 px-2 py-1 rounded text-xs text-gray-400 hover:text-white transition-all" title="表格语法帮助">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        </button>
+      </div>
+      {showTableHelp && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" onClick={() => setShowTableHelp(false)}>
+          <div className="bg-gray-900 border border-white/10 rounded-2xl p-6 max-w-lg mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-white mb-4">Markdown 表格语法</h3>
+            <div className="space-y-4">
+              <div><p className="text-sm text-gray-400 mb-2">基本表格：</p><pre className="bg-gray-800 p-3 rounded-lg text-xs text-green-400 overflow-x-auto">| 列1 | 列2 | 列3 |<br />|-----|-----|-----|<br />| 内容 | 内容 | 内容 |</pre></div>
+              <div><p className="text-sm text-gray-400 mb-2">对齐方式：</p><pre className="bg-gray-800 p-3 rounded-lg text-xs text-green-400 overflow-x-auto">| 左对齐 | 居中 | 右对齐 |<br />|:-----|:---:|-----:|<br />| 内容 | 内容 | 内容 |</pre></div>
+              <div><p className="text-sm text-gray-400 mb-2">复选框待办：</p><pre className="bg-gray-800 p-3 rounded-lg text-xs text-green-400 overflow-x-auto">- [ ] 未完成<br />- [x] 已完成</pre></div>
+            </div>
+            <button onClick={() => setShowTableHelp(false)} className="mt-4 w-full py-2 bg-violet-500/20 text-violet-300 rounded-lg hover:bg-violet-500/30 transition-all">知道了</button>
+          </div>
+        </div>
+      )}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-4xl mx-auto">
+          <textarea
+            ref={textareaRef}
+            value={currentNote.content}
+            onChange={handleContentChange}
+            placeholder="开始输入... 支持 Markdown 格式\\n\\n# 一级标题\\n## 二级标题\\n### 三级标题\\n\\n**粗体** *斜体*\\n\\n[链接](https://example.com)\\n\\n| 表格 | 支持 |\\n|------|------|\\n| 内容 | 内容 |\\n\\n- [ ] 待办事项\\n- [x] 已完成"
+            className={\\`
+              w-full min-h-[calc(100vh-250px)] p-8 bg-transparent border-none outline-none resize-none
+              text-base leading-relaxed
+              \\${theme === 'dark' ? 'text-gray-100 placeholder-gray-500' : 'text-gray-800 placeholder-gray-400'}
+            \\`}
+            style={{ fontFamily: "'JetBrains Mono', 'Fira Code', monospace" }}
+          />
+        </div>
+      </div>
+      <div className={\\`
+        px-8 py-2 border-t text-xs flex items-center justify-between
+        \\${theme === 'dark' ? 'bg-gray-800/50 border-gray-700 text-gray-400' : 'bg-gray-50 border-gray-200 text-gray-500'}
+      \\`}>
+        <span>{currentNote.content.length} 字符</span>
+        <span className="flex items-center gap-4">
+          <span className="flex items-center gap-1">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            最后更新: {new Date(currentNote.updatedAt).toLocaleString('zh-CN')}
+          </span>
+        </span>
+      </div>
+    </div>
+  );
+};
+
+export default Editor;
+`;
+
+fs.writeFileSync('E:/笔记程序/src/renderer/components/Editor.tsx', content);
+console.log('Editor.tsx updated!');
+`;
+
+fs.writeFileSync('E:/笔记程序/update-editor.js', content);
+console.log('Script created!');
