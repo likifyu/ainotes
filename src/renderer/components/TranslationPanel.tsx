@@ -20,9 +20,7 @@ const aiTranslate = async (text: string, sourceLang: string, targetLang: string)
   const sourceName = SUPPORTED_LANGUAGES.find(l => l.code === sourceLang)?.nameCN || '自动检测';
   const targetName = SUPPORTED_LANGUAGES.find(l => l.code === targetLang)?.nameCN || '目标语言';
 
-  const prompt = "请将以下文本从" + sourceName + "翻译成" + targetName + "，只输出翻译结果，不要任何解释：
-
-" + text;
+  const prompt = "请将以下文本从" + sourceName + "翻译成" + targetName + "，只输出翻译结果，不要任何解释：\n\n" + text;
 
   // 优先使用 Electron API（桌面应用）
   if (window.electronAPI?.aiChat) {
