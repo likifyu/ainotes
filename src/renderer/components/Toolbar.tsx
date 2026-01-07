@@ -29,14 +29,14 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = ({
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className={"
-        p-2 rounded-lg transition-all duration-200
-        " + (disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100 dark:hover:bg-gray-700') + "
-        " + (active ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' : '') + "
-        " + (isAI ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400' : '') + "
-        " + (isTranslation ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400' : '') + "
-        " + (theme === 'dark' ? 'text-gray-300' : 'text-gray-600') + "
-      "}
+      className={
+        "p-2 rounded-lg transition-all duration-200 " +
+        (disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100 dark:hover:bg-gray-700') + " " +
+        (active ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' : '') + " " +
+        (isAI ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400' : '') + " " +
+        (isTranslation ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400' : '') + " " +
+        (theme === 'dark' ? 'text-gray-300' : 'text-gray-600')
+      }
     >
       {children}
     </button>
@@ -137,8 +137,7 @@ const Toolbar: React.FC = () => {
   const handleContinue = async () => {
     if (!currentNote || isAILoading) return;
     setAILoading(true);
-    addAIMessage({ role: 'user', content: "请为以下内容续写：
-" + currentNote.content.slice(-500), timestamp: new Date().toISOString() });
+    addAIMessage({ role: 'user', content: "请为以下内容续写：\n" + currentNote.content.slice(-500), timestamp: new Date().toISOString() });
     try {
       const response = await aiApi.continue(currentNote.content);
       addAIMessage({ role: 'assistant', content: response.content, timestamp: new Date().toISOString() });
@@ -155,8 +154,7 @@ const Toolbar: React.FC = () => {
     const end = textarea.selectionEnd;
     const selectedText = currentNote.content.substring(start, end);
     setAILoading(true);
-    addAIMessage({ role: 'user', content: "请改写以下文字，使其更加清晰、专业：
-" + selectedText, timestamp: new Date().toISOString() });
+    addAIMessage({ role: 'user', content: "请改写以下文字，使其更加清晰、专业：\n" + selectedText, timestamp: new Date().toISOString() });
     try {
       const response = await aiApi.rewrite(selectedText, 'polish');
       addAIMessage({ role: 'assistant', content: response.content, timestamp: new Date().toISOString() });
